@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <time.h>   // for clock()
 
 #define N 3
-#define MAX_STATES 50000
+#define MAX_STATES 50000   // limit visited states
+#define MAX_DEPTH 30       // depth limit for DFS
 
-// Goal state
 int goal[N][N] = {
     {1, 2, 3},
     {4, 5, 6},
@@ -21,60 +21,37 @@ int dy[4] = {0, 0, -1, 1};
 typedef struct {
     int puzzle[N][N];
     int depth;
-    int cost;   // heuristic (misplaced tiles)
 } State;
 
-// Priority Queue Node
-typedef struct {
-    State state;
-    int priority;
-} PQNode;
+// Stack for DFS
+State stack[MAX_STATES];
+int top = -1;
 
-PQNode pq[MAX_STATES];
-int pqSize = 0;
-
-// Visited states
+// Visited states storage
 State visited[MAX_STATES];
 int visitedCount = 0;
 
-// Function to compute heuristic (misplaced tiles)
-int misplacedTiles(State s) {
-    int count = 0;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            if (s.puzzle[i][j] != 0 && s.puzzle[i][j] != goal[i][j])
-                count++;
-        }
-    }
-    return count;
-}
-
-// Priority Queue helpers
-void pushPQ(State s, int priority) {
-    if (pqSize < MAX_STATES) {
-        pq[pqSize].state = s;
-        pq[pqSize].priority = priority;
-        pqSize++;
+void push(State s) {
+    if (top < MAX_STATES - 1) {
+        stack[++top] = s;
     }
 }
 
-State popPQ() {
-    int bestIndex = 0;
-    for (int i = 1; i < pqSize; i++) {
-        if (pq[i].priority < pq[bestIndex].priority)
-            bestIndex = i;
-    }
-    State bestState = pq[bestIndex].state;
-    // Shift left
-    for (int i = bestIndex; i < pqSize - 1; i++) {
-        pq[i] = pq[i + 1];
-    }
-    pqSize--;
-    return bestState;
+State pop() {
+    return stack[top--];
 }
 
-int isPQEmpty() {
-    return pqSize == 0;
+int isEmpty() {
+    return top == -1;
+}
+
+// Check if state is goal
+int isGoal(State s) {
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
+            if (s.puzzle[i][j] != goal[i][j])
+                return 0;
+    return 1;
 }
 
 // Compare states
@@ -117,21 +94,12 @@ void printState(State s) {
     printf("\n");
 }
 
-// Check if goal
-int isGoal(State s) {
-    return misplacedTiles(s) == 0;
-}
+// DFS algorithm
+int DFS(State initial) {
+    push(initial);
 
-// Best-First Search using misplaced tiles heuristic
-void bestFirstSearch(State initial) {
-    pqSize = 0;
-    visitedCount = 0;
-
-    initial.cost = misplacedTiles(initial);
-    pushPQ(initial, initial.cost);
-
-    while (!isPQEmpty()) {
-        State current = popPQ();
+    while (!isEmpty()) {
+        State current = pop();
 
         if (isVisited(current))
             continue;
@@ -139,10 +107,13 @@ void bestFirstSearch(State initial) {
         visited[visitedCount++] = current;
 
         if (isGoal(current)) {
-            printf("Goal found at depth %d\n", current.depth);
+            printf("Goal reached at depth %d\n", current.depth);
             printState(current);
-            return;
+            return 1; // solved
         }
+
+        if (current.depth >= MAX_DEPTH)
+            continue;
 
         int x, y;
         findBlank(current, &x, &y);
@@ -151,40 +122,45 @@ void bestFirstSearch(State initial) {
             int nx = x + dx[k], ny = y + dy[k];
             if (nx >= 0 && nx < N && ny >= 0 && ny < N) {
                 State next = current;
-                // Swap blank
+                // swap blank
                 next.puzzle[x][y] = current.puzzle[nx][ny];
                 next.puzzle[nx][ny] = 0;
                 next.depth = current.depth + 1;
-                next.cost = misplacedTiles(next);
 
                 if (!isVisited(next)) {
-                    pushPQ(next, next.cost);
+                    push(next);
                 }
             }
         }
     }
-
-    printf("Goal not found.\n");
+    printf("Goal not found within depth %d.\n", MAX_DEPTH);
+    return 0; // not solved
 }
 
 int main() {
     State initial = {
         {{1, 2, 3},
          {4, 0, 6},
-         {7, 5, 8}},
-        0,
+         {7, 5, 8}}, // initial state
         0
     };
 
     printf("Initial State:\n");
     printState(initial);
 
-    clock_t start = clock();
-    bestFirstSearch(initial);
-    clock_t end = clock();
+    clock_t start, end;
+    double cpu_time_used;
 
-    double timeTaken = ((double)(end - start)) / CLOCKS_PER_SEC;
-    printf("Time taken: %.6f seconds\n", timeTaken);
+    start = clock();
+    int result = DFS(initial);
+    end = clock();
+
+    cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+
+    if (result)
+        printf("Puzzle solved in %.6f seconds.\n", cpu_time_used);
+    else
+        printf("Puzzle not solved (time taken: %.6f seconds).\n", cpu_time_used);
 
     return 0;
 }
