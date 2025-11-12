@@ -4,6 +4,7 @@
 Working of Code: This C program implements the Breadth-First Search (BFS) algorithm for solving the classic 8-puzzle problem. The BFS strategy is to systematically explore all possible states (configurations of tiles) level by level, beginning from the initial state4. The program uses a queue data structure to manage the states that need to be visited, ensuring that states closer to the start are explored first5. Each state in the puzzle is represented by a $3 \times 3$ array of integers, and the code includes utility functions to check if a state is the goal state or if it has already been visited6. The core logic involves finding the position of the blank tile (0), generating all valid neighbor states by sliding the blank tile, and adding these new, unvisited states to the queue. By strictly adhering to the level-by-level traversal of the state space, this implementation guarantees that the shortest path (minimum number of moves) to reach the goal configuration is found first, if a solution exists.
 
 **Output**
+
 <img width="315" height="240" alt="Screenshot 2025-11-12 192818" src="https://github.com/user-attachments/assets/3ae38ef6-7f4e-4ac6-b500-c04464c43143" />
 
 **Time Complexity:** $O(V + E)$ 
